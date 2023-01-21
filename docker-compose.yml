@@ -1,0 +1,8 @@
+version: '3'
+services:
+  app:
+    image: vstu_quest_front_vue:latest
+    container_name: vstu_quest_front_vue
+    restart: always
+    ports:
+      - 4201:8080
