@@ -1,16 +1,18 @@
 <template>
-  <DataTable :value="edses" :paginator="true" class="p-datatable-users mt-3" :rows="5" dataKey="id" :rowHover="true"
-    v-model:filters="filters" filterDisplay="menu" :loading="loading"
+  <DataTable ref="dt" :value="candidates" :paginator="true" class="p-datatable-candidates p-datatable-sm mt-3" :rows="5"
+    dataKey="id" :rowHover="true" v-model:filters="filters" filterDisplay="menu" :loading="loading"
     paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
     :rowsPerPageOptions="[5, 10, 15]" currentPageReportTemplate="Показаны с {first} по {last} из {totalRecords} записей"
-    :globalFilterFields="['id', 'organigation', 'certificateSerial']" responsiveLayout="scroll">
+    :globalFilterFields="['fio']" responsiveLayout="scroll">
     <template #header>
       <div class="flex justify-content-between align-items-center">
         <div>
-          <h4 class="m-0">Сертификаты ЭЦП</h4>
+          <h4 class="m-0">Список кандидатов</h4>
         </div>
         <div>
-          <Button label="Добавить" icon="pi pi-plus" class="p-button-rounded" @click="showCreateModal=true"/>
+          <Button v-if="getRole" class="p-button-rounded" icon="pi pi-external-link" label="Сохранить в CSV" @click="exportCSV($event)" />
+          <Button v-if="getRole" label="Добавить" icon="pi pi-plus" class="p-button-rounded ml-1"
+            @click="showCreateModal = true" />
         </div>
       </div>
     </template>
@@ -32,12 +34,27 @@
         <InputText type="text" v-model="filterModel.value" class="p-column-filter" placeholder="Поиск по ID" />
       </template>
     </Column>
-    <Column field="organization" header="Организация" sortable filterMatchMode="contains">
+    <Column field="fio" header="ФИО" sortable filterMatchMode="contains">
       <template #body="{ data }">
-        <span class="image-text">{{ data.organization }}</span>
+        <span class="image-text">{{ data.fio }}</span>
       </template>
       <template #filter="{ filterModel }">
-        <InputText type="text" v-model="filterModel.value" class="p-column-filter" placeholder="Поиск по организации" />
+        <InputText type="text" v-model="filterModel.value" class="p-column-filter" placeholder="Поиск по ФИО" />
+      </template>
+    </Column>
+    <Column field="birthday" header="Дата рождения" sortable dataType="date">
+      <template #body="{ data }">
+        {{ formatDate(data.birthday) }}
+      </template>
+    </Column>
+    <Column field="birthplace" header="Место рождения" sortable>
+      <template #body="{ data }">
+        <span class="image-text">{{ data.birthplace }}</span>
+      </template>
+    </Column>
+    <Column field="passport" header="Паспорт" sortable>
+      <template #body="{ data }">
+        <span class="image-text">{{ data.passport }}</span>
       </template>
     </Column>
     <Column field="position" header="Должность" sortable>
@@ -45,84 +62,82 @@
         <span class="image-text">{{ data.position }}</span>
       </template>
     </Column>
-    <Column field="fullname" header="ФИО" sortable>
+    <Column field="department" header="Подразделение" sortable filterMatchMode="contains">
       <template #body="{ data }">
-        <span class="image-text">{{ data.fullname }}</span>
+        <span class="image-text">{{ data.department }}</span>
       </template>
     </Column>
-    <Column field="inn" header="ИНН организации" sortable>
+    <Column field="checkStartDate" header="Дата начала проверки" sortable dataType="date">
       <template #body="{ data }">
-        <span class="image-text">{{ data.inn }}</span>
+        {{ formatDate(data.checkStartDate) }}
       </template>
     </Column>
-    <Column field="certificateSerial" header="Серийный номер" sortable filterMatchMode="contains">
+    <Column field="checkEndDate" header="Дата окончания проверки" sortable dataType="date">
       <template #body="{ data }">
-        <span class="image-text">{{ data.certificateSerial }}</span>
-      </template>
-      <template #filter="{ filterModel }">
-        <InputText type="text" v-model="filterModel.value" class="p-column-filter" placeholder="Поиск по номеру" />
+        {{ formatDate(data.checkEndDate) }}
       </template>
     </Column>
-    <Column field="vendor" header="Поставщик">
+    <Column field="checkResult" header="Результат проверки">
       <template #body="{ data }">
-        <span class="image-text">{{ data.vendor }}</span>
+        <span class="image-text">{{ data.checkResult }}</span>
       </template>
     </Column>
-    <Column field="usageType" header="Тип" filterMatchMode="contains">
+    <Column field="checkStatus" header="Проверка проведена" filterMatchMode="contains">
       <template #body="{ data }">
-        <span class="image-text">{{ data.usageType }}</span>
-      </template>
-      <template #filter="{ filterModel }">
-        <InputText type="text" v-model="filterModel.value" class="p-column-filter" placeholder="Поиск по типу" />
+        <Tag :severity="data.checkStatus ? 'success' : 'danger'">{{ data.checkStatus ? "Да" : "Нет" }}</Tag>
       </template>
     </Column>
-    <Column field="fromDate" header="Действует с" sortable dataType="date">
+    <Column field="checkComment" header="Комментарий сотрудника СБ">
       <template #body="{ data }">
-        {{ formatDate(data.fromDate) }}
+        <span class="image-text">{{ data.checkComment }}</span>
       </template>
     </Column>
-    <Column field="toDate" header="Действует по" sortable dataType="date">
+    <Column field="endResult" header="Окончательный итог">
       <template #body="{ data }">
-        {{ formatDate(data.toDate) }}
-      </template>
-    </Column>
-    <Column field="comment" header="Комментарий">
-      <template #body="{ data }">
-        <span class="image-text">{{ data.comment }}</span>
-      </template>
-    </Column>
-    <Column field="accountId" header="ID аккаунта">
-      <template #body="{ data }">
-        <span class="image-text">{{ data.accountId }}</span>
+        <span class="image-text">{{ data.endResult }}</span>
       </template>
     </Column>
     <Column headerStyle="width: 4rem; text-align: center" bodyStyle="text-align: center; overflow: visible">
       <template #body="{ data }">
-        <Button type="button" icon="pi pi-cog" @click="editEds(data)"></Button>
+        <Button type="button" icon="pi pi-cog" @click="editCandidate(data)"></Button>
       </template>
     </Column>
-    <Column headerStyle="width: 4rem; text-align: center" bodyStyle="text-align: center; overflow: visible">
+    <Column header="Анкета" headerStyle="width: 8rem; text-align: center"
+      bodyStyle="text-align: center; overflow: visible">
       <template #body="{ data }">
-        <FileUpload v-if="!data.fileName" mode="basic" name="file" :maxFileSize="1000000" :customUpload="true"
-          @uploader="uploadFile($event, data.id)" :multiple="false" :auto="true" chooseLabel="Загрузить" />
-        <Tag v-if="data.fileName" :value="data.fileName" @click="downloadFile(data.id)"></Tag>
+        <FileUpload v-if="!data.questionnariesName" mode="basic" name="file" :maxFileSize="1000000" :customUpload="true"
+          @uploader="uploadQuestionnaries($event, data.id)" :multiple="false" :auto="true" chooseLabel="Загрузить" />
+        <div class="flex flex-space-between">
+          <Tag style="cursor:pointer" v-if="data.questionnariesName" :value="data.questionnariesName"
+            @click="downloadQuestionnaries(data.id)">
+          </Tag>
+          <Button v-if="data.questionnariesName" icon="pi pi-times"
+            class="p-button-rounded p-button-danger p-button-text" @click="deleteQuestionnaries(data.id)" />
+        </div>
       </template>
     </Column>
-    <Column>
+    <Column header="Трудовая книжка" headerStyle="width: 8rem; text-align: center"
+      bodyStyle="text-align: center; overflow: visible">
       <template #body="{ data }">
-        <Button v-if="data.fileName" icon="pi pi-times" class="p-button-rounded p-button-danger p-button-text"
-          @click="deleteFile(data.id)" />
+        <FileUpload v-if="!data.workbookName" mode="basic" name="file" :maxFileSize="1000000" :customUpload="true"
+          @uploader="uploadWorkbook($event, data.id)" :multiple="false" :auto="true" chooseLabel="Загрузить" />
+        <div class="flex flex-space-between">
+          <Tag style="cursor:pointer" v-if="data.workbookName" :value="data.workbookName"
+            @click="downloadWorkbook(data.id)"></Tag>
+          <Button v-if="data.workbookName" icon="pi pi-times" class="p-button-rounded p-button-danger p-button-text"
+            @click="deleteWorkbook(data.id)" />
+        </div>
       </template>
     </Column>
   </DataTable>
-  <eds-view :eds="editedEds" :showComponent="showModal" v-if="showModal"
-    @close-modal="showModal = false; editedEds = null"></eds-view>
-  <create-eds-view :eds="{}" :showComponent="showCreateModal" v-if="showCreateModal"
-    @close-modal="showCreateModal = false"></create-eds-view>
+  <candidate-view :candidate="editedCandidate" :showComponent="showModal" v-if="showModal"
+    @close-modal="showModal = false; editedCandidate = null"></candidate-view>
+  <create-candidate-view :candidate="{}" :showComponent="showCreateModal" v-if="showCreateModal"
+    @close-modal="showCreateModal = false"></create-candidate-view>
 </template>
 
 <script>
-//import CandidateService from '@/services/CandidateService.js';
+import CandidateService from '@/services/CandidateService.js';
 import { FilterMatchMode, FilterOperator } from 'primevue/api';
 import CandidateView from './CandidateView.vue';
 import CreateCandidateView from './CreateCandidateView.vue';
@@ -138,11 +153,11 @@ export default {
   },
 
   created() {
-    //this.edsService = new EdsService();
+    this.candidateService = new CandidateService();
   },
 
   mounted() {
-    //this.reloadEdsList();
+    this.reloadCandidateList();
   },
 
   components: {
@@ -152,17 +167,15 @@ export default {
 
   data() {
     return {
-      edses: null,
+      candidates: null,
       filters: {
         'id': { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }] },
-        'organigation': { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
-        'certificateSerial': { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
-        'usageType': { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
+        'fio': { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
       },
       loading: true,
       showModal: false,
       showCreateModal: false,
-      editedEds: null,
+      editedCandidate: null,
     }
   },
 
@@ -170,7 +183,7 @@ export default {
     showModal: {
       handler(newValue) {
         if (!newValue) {
-          this.reloadEdsList();
+          this.reloadCandidateList();
         }
       }
     },
@@ -178,7 +191,7 @@ export default {
     showCreateModal: {
       handler(newValue) {
         if (!newValue) {
-          this.reloadEdsList();
+          this.reloadCandidateList();
         }
       }
     },
@@ -194,32 +207,57 @@ export default {
       });
     },
 
-    reloadEdsList() {
-      this.edsService.getEdses().then(data => {
-        this.edses = data;
+    reloadCandidateList() {
+      this.candidateService.getCandidates().then(data => {
+        this.candidates = data;
         this.loading = false;
       });
     },
 
-    editEds(eds) {
-      this.editedEds = eds;
+    editCandidate(candidate) {
+      this.editedCandidate = candidate;
       this.showModal = true;
     },
 
-    downloadFile(id) {
-      const url = `${API_URL}/eds/downloadfile/${id}`;
+    downloadQuestionnaries(id) {
+      const url = `${API_URL}/candidates/downloadquest/${id}`;
       window.location.href = url;
     },
 
-    uploadFile(event, id) {
-      this.edsService.uploadFile(event.files[0], id).then(() => {
-        this.reloadEdsList();
+    uploadQuestionnaries(event, id) {
+      this.candidateService.uploadQuestionnaries(event.files[0], id).then(() => {
+        this.reloadCandidateList();
       });
     },
 
-    deleteFile(id) {
-      this.edsService.deleteFile(id).then(() => this.reloadEdsList()).catch(console.log);
+    deleteQuestionnaries(id) {
+      this.candidateService.deleteQuestionnaries(id).then(() => this.reloadCandidateList()).catch(console.log);
+    },
+
+    downloadWorkbook(id) {
+      const url = `${API_URL}/candidates/downloadworkbook/${id}`;
+      window.location.href = url;
+    },
+
+    uploadWorkbook(event, id) {
+      this.candidateService.uploadWorkbook(event.files[0], id).then(() => {
+        this.reloadCandidateList();
+      });
+    },
+
+    deleteWorkbook(id) {
+      this.candidateService.deleteWorkbook(id).then(() => this.reloadCandidateList()).catch(console.log);
+    },
+
+    exportCSV() {
+      this.$refs.dt.exportCSV();
     }
+  },
+
+  computed: {
+    getRole() {
+      return this.localStorage.payload.roles === 'security' ? false : true;
+    },
   },
 
 };

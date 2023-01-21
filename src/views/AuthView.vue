@@ -69,7 +69,6 @@ export default {
         const resIsAuth = !!response.data.access_token;
         if (resIsAuth) {
           const payload = jwt_decode(response.data.access_token);
-          console.log(1, payload);
           this.localStorage.payload = payload;
           this.$router.push('/candidates');
         } else {

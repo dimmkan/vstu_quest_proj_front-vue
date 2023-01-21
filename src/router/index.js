@@ -28,11 +28,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  let payload = localStorage.payload;
-  if (typeof localStorage.payload === 'string') {
-    payload = JSON.parse(localStorage.payload)
-  } 
-  if (to.name !== 'login' && !payload.isAuth) next({ name: 'login' })
+  if (to.name !== 'login' && !localStorage.payload) next({ name: 'login' })
   else next()
 })
 

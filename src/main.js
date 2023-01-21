@@ -19,6 +19,7 @@ import Dialog from 'primevue/dialog';
 import Calendar from 'primevue/calendar';
 import Tag from 'primevue/tag';
 import FileUpload from 'primevue/fileupload';
+import Dropdown from 'primevue/dropdown';
 
 import 'primevue/resources/themes/saga-green/theme.css';
 import 'primevue/resources/primevue.min.css';
@@ -46,5 +47,6 @@ app.component('Dialog', Dialog);
 app.component('Calendar', Calendar);
 app.component('Tag', Tag);
 app.component('FileUpload', FileUpload);
+app.component('Dropdown', Dropdown);
 
 app.mount('#app')
